@@ -35,6 +35,9 @@ def camera_portrait(path: Path) -> None:
     ifd[0x920A] = IFDRational(52, 1)  # FocalLength
     ifd[0xA405] = 52  # FocalLengthIn35mmFilm
     ifd[0xA434] = "NIKKOR Z 24-200mm f/4-6.3 VR"  # LensModel
+    # 机身和镜头序列号（虚构），用来测试导出时不会被复制
+    ifd[0xA431] = "3012345"  # BodySerialNumber
+    ifd[0xA435] = "20012345"  # LensSerialNumber
 
     gps = exif.get_ifd(0x8825)
     gps[0x0001] = "N"

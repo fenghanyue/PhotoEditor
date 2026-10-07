@@ -8,6 +8,8 @@ import androidx.core.net.toUri
 sealed interface Route {
     data object Gallery : Route
 
+    data class Editor(val uri: Uri) : Route
+
     data class Detail(val uri: Uri) : Route
 }
 
@@ -18,15 +20,23 @@ val RouteStackSaver = Saver<List<Route>, ArrayList<String>>(
             routes.map { route ->
                 when (route) {
                     Route.Gallery -> GALLERY
+                    is Route.Editor -> EDITOR_PREFIX + route.uri
                     is Route.Detail -> DETAIL_PREFIX + route.uri
                 }
             },
         )
     },
     restore = { saved ->
-        saved.map { if (it.startsWith(DETAIL_PREFIX)) Route.Detail(it.removePrefix(DETAIL_PREFIX).toUri()) else Route.Gallery }
+        saved.map {
+            when {
+                it.startsWith(EDITOR_PREFIX) -> Route.Editor(it.removePrefix(EDITOR_PREFIX).toUri())
+                it.startsWith(DETAIL_PREFIX) -> Route.Detail(it.removePrefix(DETAIL_PREFIX).toUri())
+                else -> Route.Gallery
+            }
+        }
     },
 )
 
 private const val GALLERY = "gallery"
+private const val EDITOR_PREFIX = "editor:"
 private const val DETAIL_PREFIX = "detail:"

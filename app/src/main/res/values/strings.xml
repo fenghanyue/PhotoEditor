@@ -58,4 +58,41 @@
     <string name="location_grant">授权读取位置</string>
     <string name="location_unverified">没读到位置</string>
     <string name="location_unverified_note">可能本来就没有，也可能被分享的 App 删掉了</string>
+
+    <!-- 加水印页 -->
+    <string name="editor_title">加水印</string>
+    <string name="editor_info">照片信息</string>
+    <string name="template_frame">参数边框</string>
+    <string name="template_overlay">信息叠加</string>
+    <string name="option_frame_color">边框</string>
+    <string name="frame_white">白色</string>
+    <string name="frame_black">黑色</string>
+    <string name="option_left_detail">左下</string>
+    <string name="option_right_detail">右下</string>
+    <string name="detail_time">时间</string>
+    <string name="detail_lens">镜头</string>
+    <string name="detail_signature">署名</string>
+    <string name="detail_location">地点</string>
+    <string name="detail_coordinates">坐标</string>
+    <string name="detail_none">不显示</string>
+    <string name="option_show_logo">显示品牌 Logo</string>
+    <string name="option_corner">位置</string>
+    <string name="corner_bottom_left">左下</string>
+    <string name="corner_bottom_right">右下</string>
+    <string name="corner_top_left">左上</string>
+    <string name="corner_top_right">右上</string>
+    <string name="option_backdrop">半透明底板</string>
+    <string name="option_show_coordinates">显示坐标和海拔</string>
+    <string name="field_device_name">机型名称</string>
+    <string name="field_location">地点</string>
+    <string name="field_location_hint">比如：杭州 · 西湖</string>
+    <string name="field_signature">署名</string>
+    <string name="field_signature_hint">比如：© 你的名字</string>
+    <string name="field_note">备注</string>
+    <string name="option_keep_gps">新图保留照片里的 GPS 位置</string>
+    <string name="save">保存到相册</string>
+    <string name="saved">已保存到 %1$s/%2$s</string>
+    <string name="saved_downscaled">照片太大，已缩小一半保存到 %1$s/%2$s</string>
+    <string name="view">查看</string>
+    <string name="save_failed">保存失败：%1$s</string>
 </resources>
