@@ -1,0 +1,15 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- 白色相框：上半部分镂空成"照片"，下半部分是印着文字和 Logo 的边框条 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:fillType="evenOdd"
+        android:pathData="M30,34a4,4 0,0 1,4 -4h40a4,4 0,0 1,4 4v40a4,4 0,0 1,-4 4h-40a4,4 0,0 1,-4 -4z M34,34h40v29h-40z M35,67h17v3h-17z M35,72.5h11v2.5h-11z M64,67h8v8h-8z" />
+    <!-- 照片里的山和太阳 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M36,61L46,47L53,55L59,49L72,61z M61.5,41a3.5,3.5 0,1 0,7 0a3.5,3.5 0,1 0,-7 0z" />
+</vector>
