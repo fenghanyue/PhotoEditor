@@ -15,10 +15,11 @@ class MainActivityTest {
     val composeRule = createAndroidComposeRule<MainActivity>()
 
     @Test
-    fun launchShowsAppNameAndVersion() {
+    fun launchWithoutPermissionShowsPromptAndVersion() {
         val activity = composeRule.activity
         composeRule.onNodeWithText(activity.getString(R.string.app_name)).assertIsDisplayed()
         composeRule.onNodeWithText(activity.getString(R.string.version_label, BuildConfig.VERSION_NAME))
             .assertIsDisplayed()
+        composeRule.onNodeWithText(activity.getString(R.string.permission_title)).assertIsDisplayed()
     }
 }

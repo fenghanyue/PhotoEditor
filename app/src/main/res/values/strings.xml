@@ -1,6 +1,61 @@
 <resources>
     <string name="app_name">照片水印</string>
-    <string name="home_placeholder_title">框架已搭好</string>
-    <string name="home_placeholder_body">下一步会在这里显示相册，并读出每张照片的拍摄信息。</string>
     <string name="version_label">版本 %1$s</string>
+    <string name="back">返回</string>
+
+    <!-- 相册页 -->
+    <string name="permission_title">需要读取照片</string>
+    <string name="permission_body">要读出照片和照片里的拍摄信息（时间、机型、参数、位置），需要读取照片的权限。照片只在手机上处理，不会上传。\n\n授权时请选“允许访问所有照片”。如果还问到照片的位置信息，也请允许，否则读不出照片里的 GPS。</string>
+    <string name="permission_grant">授权</string>
+    <string name="permission_open_settings">没有弹窗？去系统设置里打开</string>
+    <string name="partial_access_message">你只允许了部分照片，这里只显示这些。</string>
+    <string name="partial_access_more">选择更多</string>
+    <string name="bucket_all">全部</string>
+    <string name="bucket_label">%1$s · %2$d</string>
+    <string name="gallery_empty">没有找到照片</string>
+
+    <!-- 照片信息页 -->
+    <string name="detail_title">照片信息</string>
+    <string name="detail_preview_failed">这张照片无法预览</string>
+    <string name="section_time">拍摄时间</string>
+    <string name="section_device">设备</string>
+    <string name="section_exposure">拍摄参数</string>
+    <string name="section_location">位置</string>
+    <string name="section_file">文件</string>
+    <string name="section_raw">原始标签</string>
+    <string name="label_time">时间</string>
+    <string name="label_offset">时区</string>
+    <string name="label_camera">相机</string>
+    <string name="label_lens">镜头</string>
+    <string name="label_focal">焦距</string>
+    <string name="label_aperture">光圈</string>
+    <string name="label_shutter">快门</string>
+    <string name="label_iso">感光度</string>
+    <string name="label_bias">曝光补偿</string>
+    <string name="label_flash">闪光灯</string>
+    <string name="label_coordinates">坐标</string>
+    <string name="label_altitude">海拔</string>
+    <string name="label_file_name">文件名</string>
+    <string name="label_format">格式</string>
+    <string name="label_pixels">尺寸</string>
+    <string name="label_size">大小</string>
+    <string name="label_folder">文件夹</string>
+    <string name="value_missing">没有</string>
+    <string name="value_flash_fired">闪了</string>
+    <string name="value_flash_not_fired">没闪</string>
+    <string name="note_raw_device">照片里写的是：%1$s</string>
+    <string name="note_focal_actual">等效 35mm 焦距；实际焦距 %1$s</string>
+    <string name="note_focal_equivalent">等效 35mm 焦距</string>
+    <string name="note_focal_no_equivalent">照片里没有等效焦距，这是实际焦距</string>
+    <string name="note_rotation">带方向标记：显示时顺时针转 %1$d°</string>
+    <string name="source_exif">照片自带</string>
+    <string name="source_exif_modified">照片自带的修改时间，不一定是拍摄时间</string>
+    <string name="source_file">文件记录的时间，可能是拷贝的时间</string>
+    <string name="location_absent">照片里没有位置信息</string>
+    <string name="location_absent_note">拍照时没有记录位置</string>
+    <string name="location_no_permission">读不到：没有“照片位置”权限</string>
+    <string name="location_no_permission_note">没有这个权限时，系统会先把照片里的位置删掉，再交给 App</string>
+    <string name="location_grant">授权读取位置</string>
+    <string name="location_unverified">没读到位置</string>
+    <string name="location_unverified_note">可能本来就没有，也可能被分享的 App 删掉了</string>
 </resources>
