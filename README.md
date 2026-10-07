@@ -2,11 +2,22 @@
 
 一个自用的安卓 App：把照片自带的拍摄信息（时间、机型、镜头、焦距、光圈、快门、ISO）和位置印到照片上，另存为新图，原图不动。
 
+## 效果
+
+| 参数边框 | 信息叠加 |
+|---|---|
+| ![参数边框](docs/images/frame.png) | ![信息叠加](docs/images/overlay.png) |
+
+示例图由单元测试 `WatermarkRendererTest` 自动生成，底图是渐变色块，不是真实照片。
+
 ## 安装
 
-用手机浏览器打开 [Releases 里的"最新测试版"](https://github.com/fenghanyue/PhotoEditor/releases/tag/latest-dev)，下载 APK 后直接安装。第一次安装时，需要允许浏览器"安装未知应用"。
+- **正式版（推荐）**：用手机浏览器打开 [Releases 里的最新正式版](https://github.com/fenghanyue/PhotoEditor/releases/latest)，下载 APK 后直接安装。
+- **测试版**：[最新测试版](https://github.com/fenghanyue/PhotoEditor/releases/tag/latest-dev) 是正在开发的代码，每次推送都会自动重新编译，可能有问题。
 
-每次往仓库推送代码，GitHub Actions 都会自动重新编译并更新这个页面。App 首页显示的版本号（如 `0.1.0-build12`）就是编译序号，可以用来核对装的是不是最新版。
+第一次安装时，需要允许浏览器"安装未知应用"。新版本可以直接覆盖安装旧版本；如果装过更新的测试版，再装较早的正式版会提示安装失败，要先卸载。
+
+App 首页会显示版本号：正式版如 `0.3.0`，测试版后面带编译序号，如 `0.3.0-build12`。每个版本改了什么见[更新记录](CHANGELOG.md)。
 
 ## 进度
 
@@ -14,7 +25,9 @@
 - [x] M1 读信息：相册页、照片信息详情页
 - [x] M2 出图：参数边框、信息叠加两套模板，预览和导出
 - [x] M3 位置：离线省/市/区县查询和手动选择
-- [ ] M4 批量和设置：批量导出、机型别名、默认值
+- [ ] M4 批量和设置：批量导出、记住设置、手机机型名称、更多品牌 Logo
+
+还没做的事记在 [Issues](https://github.com/fenghanyue/PhotoEditor/issues) 里。
 
 ## 怎么用
 
@@ -36,6 +49,12 @@
 ```
 
 APK 在 `app/build/outputs/apk/release/` 下。
+
+## 发版本
+
+1. 把 `app/build.gradle.kts` 里的 `appVersion` 改成新版本号，在 `CHANGELOG.md` 里写好这一版的说明。
+2. 合并到 `main`，打标签 `v` + 版本号（如 `v0.3.0`）并推送。
+3. GitHub Actions 自动编译，在 Releases 里发正式版，更新说明取自 `CHANGELOG.md`。标签和 `appVersion` 对不上时编译会失败。
 
 ## 注意
 

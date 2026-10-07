@@ -30,15 +30,22 @@ jobs:
       - name: 整理 APK
         run: |
           mkdir -p dist
-          cp app/build/outputs/apk/release/app-release.apk "dist/PhotoEditor-${{ github.run_number }}.apk"
+          # 正式版用版本号命名（PhotoEditor-0.3.0.apk），测试版用编译序号
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
+            name="PhotoEditor-${GITHUB_REF_NAME#v}.apk"
+          else
+            name="PhotoEditor-${{ github.run_number }}.apk"
+          fi
+          cp app/build/outputs/apk/release/app-release.apk "dist/$name"
 
       - uses: actions/upload-artifact@v6
         with:
           name: PhotoEditor-${{ github.run_number }}
           path: dist/*.apk
 
+      # 只由开发分支更新；main 上的提交都在开发分支上测过，不再重复发一个一样的测试版
       - name: 更新 Releases 里的"最新测试版"
-        if: github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'claude/'))
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/heads/claude/')
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
@@ -49,3 +56,31 @@ jobs:
             --target "$GITHUB_SHA" \
             --title "最新测试版（第 ${{ github.run_number }} 次编译）" \
             --notes "分支 ${GITHUB_REF_NAME}，提交 ${GITHUB_SHA::7}。用手机浏览器下载 APK 后直接安装。"
+
+      # 推送 v0.3.0 这样的标签时发正式版，更新说明取自 CHANGELOG.md 里对应的一节
+      - name: 发布正式版
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          version="${GITHUB_REF_NAME#v}"
+          # 从"## 0.3.0"开头的标题取到下一个"## "标题为止（0.3.0 后面紧跟数字或点的不算，比如 0.3.01）
+          awk -v v="$version" '
+            /^## / {
+              if (found) exit
+              rest = substr($0, 4)
+              found = index(rest, v) == 1 && substr(rest, length(v) + 1, 1) !~ /[0-9.]/
+              next
+            }
+            found
+          ' CHANGELOG.md > notes.md
+          if ! grep -q '[^[:space:]]' notes.md; then
+            echo "CHANGELOG.md 里没有 $version 的更新说明" >&2
+            exit 1
+          fi
+          printf '\n用手机浏览器下载下面的 APK，直接安装就能覆盖之前装的版本。\n' >> notes.md
+          gh release create "$GITHUB_REF_NAME" dist/*.apk \
+            --verify-tag \
+            --title "PhotoEditor $version" \
+            --notes-file notes.md

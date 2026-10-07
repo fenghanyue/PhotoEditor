@@ -34,7 +34,7 @@ class WatermarkRendererTest {
         time = "08:30",
         date = "2025.05.20",
         weekday = "星期二",
-        location = "杭州 · 西湖",
+        location = "浙江省杭州市 · 西湖",
         coordinates = "30°14'46\"N 120°08'42\"E",
         altitude = "海拔 12m",
         note = "早上的断桥，人还不多",
