@@ -2,14 +2,6 @@
 
 一个自用的安卓 App：把照片自带的拍摄信息（时间、机型、镜头、焦距、光圈、快门、ISO）和位置印到照片上，另存为新图，原图不动。
 
-## 效果
-
-| 参数边框 | 信息叠加 |
-|---|---|
-| ![参数边框](docs/images/frame.png) | ![信息叠加](docs/images/overlay.png) |
-
-示例图由单元测试 `WatermarkRendererTest` 自动生成，底图是渐变色块，不是真实照片。
-
 ## 安装
 
 - **正式版（推荐）**：用手机浏览器打开 [Releases 里的最新正式版](https://github.com/fenghanyue/PhotoEditor/releases/latest)，下载 APK 后直接安装。
