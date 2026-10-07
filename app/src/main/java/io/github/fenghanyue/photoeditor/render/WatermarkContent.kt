@@ -1,5 +1,6 @@
 package io.github.fenghanyue.photoeditor.render
 
+import io.github.fenghanyue.photoeditor.geo.Region
 import io.github.fenghanyue.photoeditor.meta.DeviceNames
 import io.github.fenghanyue.photoeditor.meta.ParamFormatter
 import io.github.fenghanyue.photoeditor.meta.PhotoMeta
@@ -20,6 +21,7 @@ data class WatermarkContent(
     val time: String? = null,
     val date: String? = null,
     val weekday: String? = null,
+    /** 地区和地点名称，例如"甘肃省敦煌市 · 鸣沙山月牙泉" */
     val location: String? = null,
     /** 例如 39°54'31"N 116°23'51"E */
     val coordinates: String? = null,
@@ -32,9 +34,13 @@ data class WatermarkContent(
         private val DATE: DateTimeFormatter = DateTimeFormatter.ofPattern("yyyy.MM.dd")
         private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
         private const val PARAM_SEPARATOR = "  "
+        private const val LOCATION_SEPARATOR = " · "
 
-        /** @param deviceName 机型名称：改过的就用改过的，否则是从照片里读出来整理好的。 */
-        fun from(meta: PhotoMeta, deviceName: String?, options: WatermarkOptions): WatermarkContent {
+        /**
+         * @param deviceName 机型名称：改过的就用改过的，否则是从照片里读出来整理好的。
+         * @param region 要印的地区，按 [WatermarkOptions.regionStyle] 的写法印。
+         */
+        fun from(meta: PhotoMeta, deviceName: String?, options: WatermarkOptions, region: Region? = null): WatermarkContent {
             val focal = meta.focalLength35mm?.toDouble() ?: meta.focalLengthMm
             val params = listOfNotNull(
                 focal?.let(ParamFormatter::focalLength),
@@ -44,6 +50,9 @@ data class WatermarkContent(
             ).joinToString(PARAM_SEPARATOR).ifEmpty { null }
             val dateTime = meta.dateTime?.value
             val gps = meta.gps
+            val location = listOfNotNull(region?.text(options.regionStyle), options.placeName.trim().ifEmpty { null })
+                .joinToString(LOCATION_SEPARATOR)
+                .ifEmpty { null }
             return WatermarkContent(
                 brand = DeviceNames.brand(meta.make),
                 deviceName = deviceName?.trim()?.ifEmpty { null },
@@ -53,7 +62,7 @@ data class WatermarkContent(
                 time = dateTime?.format(TIME),
                 date = dateTime?.format(DATE),
                 weekday = dateTime?.dayOfWeek?.getDisplayName(TextStyle.FULL, Locale.CHINA),
-                location = options.location.trim().ifEmpty { null },
+                location = location,
                 coordinates = gps?.let { ParamFormatter.coordinatesDms(it.latitude, it.longitude) },
                 altitude = gps?.altitudeMeters?.let { "海拔 ${ParamFormatter.altitude(it)}" },
                 signature = options.signature.trim().ifEmpty { null },

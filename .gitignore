@@ -13,3 +13,6 @@ local.properties
 captures/
 .externalNativeBuild/
 .cxx/
+
+# 地区数据构建脚本的下载缓存
+tools/regions/.cache/

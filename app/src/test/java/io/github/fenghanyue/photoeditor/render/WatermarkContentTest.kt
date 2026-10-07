@@ -1,5 +1,8 @@
 package io.github.fenghanyue.photoeditor.render
 
+import io.github.fenghanyue.photoeditor.geo.Region
+import io.github.fenghanyue.photoeditor.geo.RegionLevel
+import io.github.fenghanyue.photoeditor.geo.RegionStyle
 import io.github.fenghanyue.photoeditor.meta.GeoPoint
 import io.github.fenghanyue.photoeditor.meta.MetaSource
 import io.github.fenghanyue.photoeditor.meta.PhotoMeta
@@ -26,7 +29,8 @@ class WatermarkContentTest {
 
     @Test
     fun buildsAllLines() {
-        val content = WatermarkContent.from(meta, "Nikon Z5II", WatermarkOptions(location = " 北京 · 天安门 "))
+        val dongcheng = Region(110101, "东城区", RegionLevel.COUNTY, Region(110000, "北京市", RegionLevel.PROVINCE, null))
+        val content = WatermarkContent.from(meta, "Nikon Z5II", WatermarkOptions(placeName = " 天安门 "), dongcheng)
 
         assertEquals("Nikon", content.brand)
         assertEquals("Nikon Z5II", content.deviceName)
@@ -36,9 +40,23 @@ class WatermarkContentTest {
         assertEquals("08:30", content.time)
         assertEquals("2025.05.20", content.date)
         assertEquals("星期二", content.weekday)
-        assertEquals("北京 · 天安门", content.location)
+        assertEquals("北京市东城区 · 天安门", content.location)
         assertEquals("39°54'31\"N 116°23'51\"E", content.coordinates)
         assertEquals("海拔 44m", content.altitude)
+    }
+
+    @Test
+    fun locationIsRegionInChosenStyleThenPlaceName() {
+        val gansu = Region(620000, "甘肃省", RegionLevel.PROVINCE, null)
+        val dunhuang = Region(620982, "敦煌市", RegionLevel.COUNTY, Region(620900, "酒泉市", RegionLevel.CITY, gansu))
+        fun location(style: RegionStyle, placeName: String, region: Region? = dunhuang) =
+            WatermarkContent.from(meta, null, WatermarkOptions(regionStyle = style, placeName = placeName), region).location
+
+        assertEquals("甘肃省敦煌市 · 鸣沙山月牙泉", location(RegionStyle.PROVINCE_COUNTY, "鸣沙山月牙泉"))
+        assertEquals("甘肃省酒泉市敦煌市", location(RegionStyle.FULL, " "))
+        assertEquals("敦煌市", location(RegionStyle.COUNTY, ""))
+        // 没有地区时只印地点名称
+        assertEquals("鸣沙山月牙泉", location(RegionStyle.PROVINCE_COUNTY, "鸣沙山月牙泉", region = null))
     }
 
     @Test

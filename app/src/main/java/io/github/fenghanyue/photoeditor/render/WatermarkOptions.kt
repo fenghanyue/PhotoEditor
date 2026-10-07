@@ -1,5 +1,7 @@
 package io.github.fenghanyue.photoeditor.render
 
+import io.github.fenghanyue.photoeditor.geo.RegionStyle
+
 /** 水印模板。 */
 enum class TemplateKind { FRAME, OVERLAY }
 
@@ -24,8 +26,10 @@ data class WatermarkOptions(
     /** 信息叠加下面垫一块半透明的黑底，亮背景上也看得清。 */
     val backdrop: Boolean = true,
     val showCoordinates: Boolean = true,
-    /** 手填的地点。 */
-    val location: String = "",
+    /** 地区的写法，例如"甘肃省敦煌市"还是"甘肃省酒泉市敦煌市"。 */
+    val regionStyle: RegionStyle = RegionStyle.PROVINCE_COUNTY,
+    /** 手填的地点名称，接在地区后面，例如"鸣沙山月牙泉"。 */
+    val placeName: String = "",
     val signature: String = "",
     val note: String = "",
     /** 新图是否保留照片里的 GPS。 */

@@ -84,8 +84,19 @@
     <string name="option_backdrop">半透明底板</string>
     <string name="option_show_coordinates">显示坐标和海拔</string>
     <string name="field_device_name">机型名称</string>
-    <string name="field_location">地点</string>
-    <string name="field_location_hint">比如：杭州 · 西湖</string>
+    <string name="field_region">地区</string>
+    <string name="region_none">未选择</string>
+    <string name="region_pick">选择</string>
+    <string name="region_source_gps">按照片 GPS 自动查出</string>
+    <string name="region_source_manual">手动选择</string>
+    <string name="region_source_previous">照片没有 GPS，沿用上一张</string>
+    <string name="region_gps_not_found">照片 GPS 在国外或海上，查不到地区</string>
+    <string name="option_region_style">写法</string>
+    <string name="region_style_province_county">省+区县</string>
+    <string name="region_style_full">省市区</string>
+    <string name="region_style_county">只写区县</string>
+    <string name="field_place_name">地点名称</string>
+    <string name="field_place_name_hint">比如：鸣沙山月牙泉</string>
     <string name="field_signature">署名</string>
     <string name="field_signature_hint">比如：© 你的名字</string>
     <string name="field_note">备注</string>
@@ -95,4 +106,15 @@
     <string name="saved_downscaled">照片太大，已缩小一半保存到 %1$s/%2$s</string>
     <string name="view">查看</string>
     <string name="save_failed">保存失败：%1$s</string>
+
+    <!-- 选择地区 -->
+    <string name="picker_title">选择地区</string>
+    <string name="picker_search_hint">搜索，比如：敦煌</string>
+    <string name="picker_no_result">没有找到</string>
+    <string name="picker_gps">照片 GPS 所在地区</string>
+    <string name="picker_recent">最近用过</string>
+    <string name="picker_all">全部地区</string>
+    <string name="picker_whole">整个%1$s</string>
+    <string name="picker_up">返回上一级</string>
+    <string name="picker_clear">清除</string>
 </resources>

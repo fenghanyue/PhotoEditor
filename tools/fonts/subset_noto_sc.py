@@ -3,7 +3,8 @@
 用法（需要先 pip install fonttools）：
     python3 tools/fonts/subset_noto_sc.py app/src/main/assets/fonts
 
-保留的字符：英文、数字、常用符号，以及 GB2312 里的全部字符（6763 个汉字）。
+保留的字符：英文、数字、常用符号，GB2312 里的全部字符（6763 个汉字），
+以及同目录 extra_chars.txt 里的字（地名用字，由 tools/regions/build_regions.py 生成）。
 没收进来的生僻字，在手机上会自动用系统字体补上。
 """
 
@@ -17,6 +18,7 @@ from fontTools.ttLib import TTFont
 
 CSS_URL = "https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700"
 OUTPUT_NAMES = {400: "NotoSansSC-Regular.ttf", 700: "NotoSansSC-Bold.ttf"}
+EXTRA_CHARS_FILE = Path(__file__).with_name("extra_chars.txt")
 
 # 英文、数字、标点、度分秒、希腊字母（索尼的 α）、罗马数字、几何符号等
 EXTRA_RANGES = [
@@ -55,6 +57,9 @@ def characters() -> list[int]:
                 codepoints.add(ord(bytes([high, low]).decode("gb2312")))
             except UnicodeDecodeError:
                 pass
+    for line in EXTRA_CHARS_FILE.read_text(encoding="utf-8").splitlines():
+        if not line.startswith("#"):
+            codepoints.update(ord(c) for c in line if not c.isspace())
     return sorted(codepoints)
 
 

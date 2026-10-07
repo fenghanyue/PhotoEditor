@@ -37,11 +37,16 @@ import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
@@ -52,6 +57,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import io.github.fenghanyue.photoeditor.R
 import io.github.fenghanyue.photoeditor.export.PhotoExporter
+import io.github.fenghanyue.photoeditor.geo.Region
+import io.github.fenghanyue.photoeditor.geo.RegionStyle
 import io.github.fenghanyue.photoeditor.render.Corner
 import io.github.fenghanyue.photoeditor.render.FrameColor
 import io.github.fenghanyue.photoeditor.render.FrameLeftDetail
@@ -74,6 +81,7 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit, onOpenInfo: () -> Unit) {
         onOpenInfo = onOpenInfo,
         onOptionsChange = viewModel::updateOptions,
         onDeviceNameChange = viewModel::updateDeviceName,
+        onRegionSelect = viewModel::selectRegion,
         onSave = viewModel::save,
         onSaveResultShown = viewModel::consumeSaveResult,
     )
@@ -87,11 +95,13 @@ fun EditorContent(
     onOpenInfo: () -> Unit,
     onOptionsChange: ((WatermarkOptions) -> WatermarkOptions) -> Unit,
     onDeviceNameChange: (String) -> Unit,
+    onRegionSelect: (Region?) -> Unit,
     onSave: () -> Unit,
     onSaveResultShown: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    var pickingRegion by rememberSaveable { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val result = state.saveResult
@@ -157,6 +167,7 @@ fun EditorContent(
                 state = state,
                 onOptionsChange = onOptionsChange,
                 onDeviceNameChange = onDeviceNameChange,
+                onPickRegion = { pickingRegion = true },
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(0.55f)
@@ -176,6 +187,18 @@ fun EditorContent(
                 }
             }
         }
+    }
+
+    val regionIndex = state.regionIndex
+    if (pickingRegion && regionIndex != null) {
+        RegionPickerSheet(
+            index = regionIndex,
+            current = state.region,
+            gpsRegion = state.gpsRegion,
+            recent = state.recentRegions,
+            onSelect = onRegionSelect,
+            onDismiss = { pickingRegion = false },
+        )
     }
 }
 
@@ -203,6 +226,7 @@ private fun OptionsPanel(
     state: EditorState,
     onOptionsChange: ((WatermarkOptions) -> WatermarkOptions) -> Unit,
     onDeviceNameChange: (String) -> Unit,
+    onPickRegion: () -> Unit,
     modifier: Modifier,
 ) {
     val options = state.options
@@ -280,11 +304,25 @@ private fun OptionsPanel(
                 }
             }
         }
+        RegionRow(state, onPickRegion)
+        if (state.region != null) {
+            LabeledChoices(
+                label = stringResource(R.string.option_region_style),
+                items = listOf(
+                    RegionStyle.PROVINCE_COUNTY to stringResource(R.string.region_style_province_county),
+                    RegionStyle.FULL to stringResource(R.string.region_style_full),
+                    RegionStyle.COUNTY to stringResource(R.string.region_style_county),
+                ),
+                selected = options.regionStyle,
+                onSelect = { value -> onOptionsChange { it.copy(regionStyle = value) } },
+                showIcon = false,
+            )
+        }
         OutlinedTextField(
-            value = options.location,
-            onValueChange = { text -> onOptionsChange { it.copy(location = text) } },
-            label = { Text(stringResource(R.string.field_location)) },
-            placeholder = { Text(stringResource(R.string.field_location_hint)) },
+            value = options.placeName,
+            onValueChange = { text -> onOptionsChange { it.copy(placeName = text) } },
+            label = { Text(stringResource(R.string.field_place_name)) },
+            placeholder = { Text(stringResource(R.string.field_place_name_hint)) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth(),
         )
@@ -314,25 +352,77 @@ private fun OptionsPanel(
     }
 }
 
+/** 地区：当前地区和它是怎么来的，右边是"选择"按钮。 */
+@Composable
+private fun RegionRow(state: EditorState, onPick: () -> Unit) {
+    val region = state.region
+    val note = when {
+        state.loading -> null
+        region != null -> when (state.regionSource) {
+            RegionSource.GPS -> R.string.region_source_gps
+            RegionSource.MANUAL -> R.string.region_source_manual
+            RegionSource.PREVIOUS -> R.string.region_source_previous
+            null -> null
+        }
+        // 只在真的查不到时提示；查到了但被手动清除的，不算
+        state.hasGps && state.gpsRegion == null && state.regionIndex != null -> R.string.region_gps_not_found
+        else -> null
+    }
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(R.string.field_region), style = MaterialTheme.typography.bodyMedium, modifier = Modifier.width(56.dp))
+        Column(Modifier.weight(1f)) {
+            Text(
+                when {
+                    region != null -> region.text(state.options.regionStyle)
+                    state.loading -> ""
+                    else -> stringResource(R.string.region_none)
+                },
+                style = MaterialTheme.typography.bodyLarge,
+            )
+            note?.let {
+                Text(stringResource(it), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+        // 照片还在读取时先不让选，免得选好的地区被读完后的结果覆盖
+        TextButton(onClick = onPick, enabled = state.regionIndex != null && !state.loading) {
+            Text(stringResource(R.string.region_pick))
+        }
+    }
+}
+
+/** showIcon = false 时选中的一项不显示对勾，文字长的选项也放得下。 */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun <T> Choices(items: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit, modifier: Modifier = Modifier) {
+private fun <T> Choices(
+    items: List<Pair<T, String>>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    modifier: Modifier = Modifier,
+    showIcon: Boolean = true,
+) {
     SingleChoiceSegmentedButtonRow(modifier.fillMaxWidth()) {
         items.forEachIndexed { index, (value, label) ->
             SegmentedButton(
                 selected = value == selected,
                 onClick = { onSelect(value) },
                 shape = SegmentedButtonDefaults.itemShape(index, items.size),
+                icon = { if (showIcon) SegmentedButtonDefaults.Icon(value == selected) },
             ) { Text(label, maxLines = 1) }
         }
     }
 }
 
 @Composable
-private fun <T> LabeledChoices(label: String, items: List<Pair<T, String>>, selected: T, onSelect: (T) -> Unit) {
+private fun <T> LabeledChoices(
+    label: String,
+    items: List<Pair<T, String>>,
+    selected: T,
+    onSelect: (T) -> Unit,
+    showIcon: Boolean = true,
+) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(label, style = MaterialTheme.typography.bodyMedium, modifier = Modifier.width(56.dp))
-        Choices(items, selected, onSelect, Modifier.weight(1f))
+        Choices(items, selected, onSelect, Modifier.weight(1f), showIcon)
     }
 }
 
