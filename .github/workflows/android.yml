@@ -2,20 +2,42 @@ name: 编译 APK
 
 on:
   push:
+  # 在 Actions 页面手动运行；填了版本号就发正式版（只能在 main 上发）
   workflow_dispatch:
+    inputs:
+      release:
+        description: 发正式版：填版本号（如 0.3.0），要和 app/build.gradle.kts 里的 appVersion 一样；留空只编译
+        required: false
+        default: ''
 
 permissions:
   contents: write
 
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
+  # 发正式版单独排队，不会和普通编译互相取消
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.release }}
   cancel-in-progress: true
 
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      # 编译脚本按它决定版本号；推送代码时为空
+      RELEASE_VERSION: ${{ inputs.release }}
     steps:
+      - name: 检查正式版的版本号
+        if: env.RELEASE_VERSION != ''
+        run: |
+          if [ "$GITHUB_REF" != refs/heads/main ]; then
+            echo "正式版只能从 main 发，现在是 $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+          if ! [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "版本号要写成 0.3.0 这样，现在是 $RELEASE_VERSION" >&2
+            exit 1
+          fi
+
       - uses: actions/checkout@v5
 
       - uses: actions/setup-java@v5
@@ -31,12 +53,7 @@ jobs:
         run: |
           mkdir -p dist
           # 正式版用版本号命名（PhotoEditor-0.3.0.apk），测试版用编译序号
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            name="PhotoEditor-${GITHUB_REF_NAME#v}.apk"
-          else
-            name="PhotoEditor-${{ github.run_number }}.apk"
-          fi
-          cp app/build/outputs/apk/release/app-release.apk "dist/$name"
+          cp app/build/outputs/apk/release/app-release.apk "dist/PhotoEditor-${RELEASE_VERSION:-${{ github.run_number }}}.apk"
 
       - uses: actions/upload-artifact@v6
         with:
@@ -57,14 +74,14 @@ jobs:
             --title "最新测试版（第 ${{ github.run_number }} 次编译）" \
             --notes "分支 ${GITHUB_REF_NAME}，提交 ${GITHUB_SHA::7}。用手机浏览器下载 APK 后直接安装。"
 
-      # 推送 v0.3.0 这样的标签时发正式版，更新说明取自 CHANGELOG.md 里对应的一节
+      # 打标签 v0.3.0 并发正式版，更新说明取自 CHANGELOG.md 里对应的一节
       - name: 发布正式版
-        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+        if: env.RELEASE_VERSION != ''
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
         run: |
-          version="${GITHUB_REF_NAME#v}"
+          version="$RELEASE_VERSION"
           # 从"## 0.3.0"开头的标题取到下一个"## "标题为止（0.3.0 后面紧跟数字或点的不算，比如 0.3.01）
           awk -v v="$version" '
             /^## / {
@@ -80,7 +97,7 @@ jobs:
             exit 1
           fi
           printf '\n用手机浏览器下载下面的 APK，直接安装就能覆盖之前装的版本。\n' >> notes.md
-          gh release create "$GITHUB_REF_NAME" dist/*.apk \
-            --verify-tag \
+          gh release create "v$version" dist/*.apk \
+            --target "$GITHUB_SHA" \
             --title "PhotoEditor $version" \
             --notes-file notes.md

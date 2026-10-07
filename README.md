@@ -44,9 +44,9 @@ APK 在 `app/build/outputs/apk/release/` 下。
 
 ## 发版本
 
-1. 把 `app/build.gradle.kts` 里的 `appVersion` 改成新版本号，在 `CHANGELOG.md` 里写好这一版的说明。
-2. 合并到 `main`，打标签 `v` + 版本号（如 `v0.3.0`）并推送。
-3. GitHub Actions 自动编译，在 Releases 里发正式版，更新说明取自 `CHANGELOG.md`。标签和 `appVersion` 对不上时编译会失败。
+1. 把 `app/build.gradle.kts` 里的 `appVersion` 改成新版本号，在 `CHANGELOG.md` 里写好这一版的说明，合并到 `main`。
+2. 在 GitHub 网页上打开 Actions → 编译 APK → Run workflow，分支选 `main`，版本号填 `0.3.0` 这样的格式，点运行。
+3. 编译通过后自动打标签 `v0.3.0`，在 Releases 里发正式版，更新说明取自 `CHANGELOG.md`。填的版本号和 `appVersion` 对不上时编译会失败。
 
 ## 注意
 

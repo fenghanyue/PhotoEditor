@@ -3,19 +3,17 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-// 当前版本号，和里程碑对应（M3 是 0.3.0）。发正式版时打同名标签（v0.3.0），
-// 开始做下一个里程碑时改成下一个版本号。
+// 当前版本号，和里程碑对应（M3 是 0.3.0）。开始做下一个里程碑时改成下一个版本号。
 val appVersion = "0.3.0"
 
 // GitHub Actions 的编译序号。用它当版本号，保证新版本能覆盖安装旧版本。
 val ciBuildNumber = providers.environmentVariable("GITHUB_RUN_NUMBER").orNull?.toIntOrNull()
 
-// 从 v 开头的标签编译的是正式版。标签必须和 appVersion 一致，免得发错版本。
-val releaseTag = providers.environmentVariable("GITHUB_REF").orNull
-    ?.takeIf { it.startsWith("refs/tags/v") }
-    ?.removePrefix("refs/tags/")
-check(releaseTag == null || releaseTag == "v$appVersion") {
-    "标签 $releaseTag 和版本号 $appVersion 对不上，先改 app/build.gradle.kts 里的 appVersion"
+// 发正式版时在 GitHub Actions 里手动运行并填写版本号，由这个环境变量传进来。
+// 必须和 appVersion 一致，免得发错版本。
+val releaseVersion = providers.environmentVariable("RELEASE_VERSION").orNull?.takeIf { it.isNotBlank() }
+check(releaseVersion == null || releaseVersion == appVersion) {
+    "要发的版本 $releaseVersion 和 appVersion $appVersion 对不上，先改 app/build.gradle.kts 里的 appVersion"
 }
 
 android {
@@ -28,7 +26,7 @@ android {
         targetSdk = 37
         versionCode = ciBuildNumber ?: 1
         versionName = when {
-            releaseTag != null -> appVersion
+            releaseVersion != null -> appVersion
             ciBuildNumber != null -> "$appVersion-build$ciBuildNumber"
             else -> "$appVersion-local"
         }
