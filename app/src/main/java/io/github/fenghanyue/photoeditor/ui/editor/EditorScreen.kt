@@ -51,6 +51,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -59,6 +61,7 @@ import io.github.fenghanyue.photoeditor.R
 import io.github.fenghanyue.photoeditor.export.PhotoExporter
 import io.github.fenghanyue.photoeditor.geo.Region
 import io.github.fenghanyue.photoeditor.geo.RegionStyle
+import io.github.fenghanyue.photoeditor.meta.DeviceModel
 import io.github.fenghanyue.photoeditor.render.Corner
 import io.github.fenghanyue.photoeditor.render.FrameColor
 import io.github.fenghanyue.photoeditor.render.FrameLeftDetail
@@ -84,6 +87,8 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit, onOpenInfo: () -> Unit) {
         onRegionSelect = viewModel::selectRegion,
         onSave = viewModel::save,
         onSaveResultShown = viewModel::consumeSaveResult,
+        onDeviceNameModeChange = viewModel::setDeviceNameMode,
+        onDeviceModelSelect = viewModel::selectDeviceModel,
     )
 }
 
@@ -98,10 +103,20 @@ fun EditorContent(
     onRegionSelect: (Region?) -> Unit,
     onSave: () -> Unit,
     onSaveResultShown: () -> Unit,
+    onDeviceNameModeChange: (DeviceNameMode) -> Unit,
+    onDeviceModelSelect: (DeviceModel) -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val context = LocalContext.current
+    val focusManager = LocalFocusManager.current
+    val keyboard = LocalSoftwareKeyboardController.current
     var pickingRegion by rememberSaveable { mutableStateOf(false) }
+    var pickingDevice by rememberSaveable(state.uri) { mutableStateOf(false) }
+    val pickDevice = {
+        focusManager.clearFocus()
+        keyboard?.hide()
+        pickingDevice = true
+    }
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
     val result = state.saveResult
@@ -167,6 +182,16 @@ fun EditorContent(
                 state = state,
                 onOptionsChange = onOptionsChange,
                 onDeviceNameChange = onDeviceNameChange,
+                onDeviceNameModeChange = { mode ->
+                    focusManager.clearFocus()
+                    keyboard?.hide()
+                    if (mode == DeviceNameMode.PICKER && state.deviceName.selectedModel == null) {
+                        pickDevice()
+                    } else {
+                        onDeviceNameModeChange(mode)
+                    }
+                },
+                onPickDevice = pickDevice,
                 onPickRegion = { pickingRegion = true },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -200,6 +225,14 @@ fun EditorContent(
             onDismiss = { pickingRegion = false },
         )
     }
+
+    if (pickingDevice) {
+        DevicePickerSheet(
+            current = state.deviceName.selectedModel,
+            onSelect = onDeviceModelSelect,
+            onDismiss = { pickingDevice = false },
+        )
+    }
 }
 
 @Composable
@@ -226,6 +259,8 @@ private fun OptionsPanel(
     state: EditorState,
     onOptionsChange: ((WatermarkOptions) -> WatermarkOptions) -> Unit,
     onDeviceNameChange: (String) -> Unit,
+    onDeviceNameModeChange: (DeviceNameMode) -> Unit,
+    onPickDevice: () -> Unit,
     onPickRegion: () -> Unit,
     modifier: Modifier,
 ) {
@@ -276,12 +311,12 @@ private fun OptionsPanel(
             SwitchRow(stringResource(R.string.option_show_logo), options.showLogo) { checked ->
                 onOptionsChange { it.copy(showLogo = checked) }
             }
-            OutlinedTextField(
-                value = state.deviceName,
-                onValueChange = onDeviceNameChange,
-                label = { Text(stringResource(R.string.field_device_name)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
+            DeviceNameEditor(
+                state = state.deviceName,
+                enabled = !state.loading && state.meta != null,
+                onNameChange = onDeviceNameChange,
+                onModeChange = onDeviceNameModeChange,
+                onPickModel = onPickDevice,
             )
         } else {
             LabeledChoices(

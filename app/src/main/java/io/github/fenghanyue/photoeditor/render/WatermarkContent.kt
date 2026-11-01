@@ -39,8 +39,15 @@ data class WatermarkContent(
         /**
          * @param deviceName 机型名称：改过的就用改过的，否则是从照片里读出来整理好的。
          * @param region 要印的地区，按 [WatermarkOptions.regionStyle] 的写法印。
+         * @param brandOverride 从机型目录选择时传入对应品牌；手动输入时沿用照片品牌。
          */
-        fun from(meta: PhotoMeta, deviceName: String?, options: WatermarkOptions, region: Region? = null): WatermarkContent {
+        fun from(
+            meta: PhotoMeta,
+            deviceName: String?,
+            options: WatermarkOptions,
+            region: Region? = null,
+            brandOverride: String? = null,
+        ): WatermarkContent {
             val focal = meta.focalLength35mm?.toDouble() ?: meta.focalLengthMm
             val params = listOfNotNull(
                 focal?.let(ParamFormatter::focalLength),
@@ -54,7 +61,7 @@ data class WatermarkContent(
                 .joinToString(LOCATION_SEPARATOR)
                 .ifEmpty { null }
             return WatermarkContent(
-                brand = DeviceNames.brand(meta.make),
+                brand = brandOverride ?: DeviceNames.brand(meta.make),
                 deviceName = deviceName?.trim()?.ifEmpty { null },
                 lens = meta.lensModel,
                 params = params,
