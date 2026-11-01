@@ -12,7 +12,7 @@ val ciBuildNumber = providers.environmentVariable("GITHUB_RUN_NUMBER").orNull?.t
 // 本地测试包要覆盖手机里已安装的版本时，显式传入递增的版本号。
 val localVersionCode = providers.gradleProperty("localVersionCode").map { it.toInt() }.orNull
 
-// 发正式版时在 GitHub Actions 里手动运行并填写版本号，由这个环境变量传进来。
+// 发布版本文件合并到 main，或在 Actions 里手动填版本号后，由工作流传入。
 // 必须和 appVersion 一致，免得发错版本。
 val releaseVersion = providers.environmentVariable("RELEASE_VERSION").orNull?.takeIf { it.isNotBlank() }
 check(releaseVersion == null || releaseVersion == appVersion) {

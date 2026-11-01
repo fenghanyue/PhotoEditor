@@ -113,18 +113,27 @@
   - 写好 `local.properties`；
   - 把 Maven Central 指到 Google 的镜像（经这里的代理直连会返回 429）；
   - 预先下载编译依赖。
-- 推送标签会被拒绝（403），所以发正式版用 Actions 里的按钮（见下）。推送分支没问题。
-- GitHub 操作用 MCP 的 github 工具，没有 gh 命令。
+- 早期云环境推送标签会被拒绝（403）；正式版的标签和 APK 仍由 GitHub Actions 创建，云端只提交发布版本文件。推送分支正常。
+- GitHub 操作优先使用 MCP 的 github 工具。当前 Codex 云环境虽有 gh，但 API 访问受限，且连接器没有触发 Actions 的接口；不依赖云环境直接调用发布 API。
 
 ## 分支和发版本
 
 - **日常开发：**推到会话指定的 `claude/...` 分支。CI 会自动编译，并更新 Releases 里的"最新测试版"（latest-dev）。
 - **发正式版：**里程碑完成、用户真机验证过之后，经用户同意：
   1. 在 `CHANGELOG.md` 写好这一版的说明，确认 `app/build.gradle.kts` 里的 `appVersion` 是这一版的版本号。
-  2. 把 `main` 快进到同一个提交。
-  3. 用 `actions_run_trigger` 运行 `android.yml`：ref 填 `main`，inputs 填 `{"release": "0.4.0"}`。用户自己也可以在 Actions 页面点 Run workflow。
-  4. CI 会打标签 `v0.4.0` 并发正式版。
+  2. 将 `.github/release-version` 改成同一版本号，随代码一起合并到 `main`。
+  3. `android.yml` 比较本次推送前后；只有 main 上发布版本文件变化，才自动准备正式版。编译、测试和代码检查全部通过后，由 CI 打标签并发布 APK。
+  4. 跟进 Actions 的实际结果，检查 Releases 的标签和 APK，再给用户下载链接。已有完整正式版跳过，已有标签或不完整发布记录报错，不覆盖。
+- **手动补发：**仍可在 Actions 页面 Run workflow，ref 选 `main`，`release` 填版本号；留空只编译。原来交接中提到的 `actions_run_trigger` 不在当前连接器里，不假定可用。
+- **重试：**临时故障可重跑原任务；代码修复合并后，使用手动入口重试同一版本，重跑原任务仍使用原提交。仅推一个没有改发布版本文件的修复提交不会再次触发发布。
 - **版本号：**和里程碑对应（M3 = 0.3.0）。开始做下一个里程碑时，就把 `appVersion` 改成下一个版本号，测试版会显示成 `0.4.0-build编译序号`。
+
+### 自动发布入口调整（2026-11-01）
+
+- 0.4.0 已由用户手动触发 Actions 发布。本次只调整后续的发版入口，发布版本文件从 `0.4.0` 起步，不新增 App 版本。
+- main 按提交分别运行，不让普通提交取消正在进行的发版；开发分支保留取消旧编译的行为。
+- 发布准备脚本先检查格式、App 版本、更新说明和已有发布，上传前再检查一次。GitHub 权限或网络错误会停止流程，不当作版本不存在。
+- 后续新版本的自动发布需要通过实际发布再验收；本次配置上线的状态以任务汇报为准。
 
 ## 工具脚本
 
@@ -133,3 +142,4 @@
 - `regions/build_regions.py`：从 DataV 下载边界，生成 `app/src/main/assets/regions.bin` 和 `tools/fonts/extra_chars.txt`。只用 Python 标准库，文件格式写在脚本开头。
 - `fonts/subset_noto_sc.py`：下载思源黑体，裁成子集。需要 fontTools。
 - `testdata/make_exif_fixtures.py`：生成测试用的 EXIF 图片。需要 Pillow。
+- `release/prepare_release.py`：Actions 的发布判断、版本和更新说明检查、重复发布保护。只用 Python 标准库；`python3 -B -m unittest discover -s tools/release -v` 检查触发条件及失败情况，不创建真实 Release。

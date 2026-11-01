@@ -54,9 +54,13 @@ APK 在 `app/build/outputs/apk/release/` 下。
 
 ## 发版本
 
-1. 把 `app/build.gradle.kts` 里的 `appVersion` 改成新版本号，在 `CHANGELOG.md` 里写好这一版的说明，合并到 `main`。
-2. 在 GitHub 网页上打开 Actions → 编译 APK → Run workflow，分支选 `main`，版本号填 `0.3.0` 这样的格式，点运行。
-3. 编译通过后自动打标签 `v0.3.0`，在 Releases 里发正式版，更新说明取自 `CHANGELOG.md`。填的版本号和 `appVersion` 对不上时编译会失败。
+1. 把 `app/build.gradle.kts` 里的 `appVersion` 改成新版本号，在 `CHANGELOG.md` 里写好这一版的说明。
+2. 准备正式发布时，把 `.github/release-version` 改成同一个版本号（如 `0.4.1`），随代码一起合并到 `main`。
+3. Actions 会自动编译、运行单元测试和代码检查；全部通过后打标签 `v0.4.1`，在 Releases 发布 APK，更新说明取自 `CHANGELOG.md`，不需要再点网页按钮。
+
+普通提交和开发分支只编译，不发正式版。版本号必须和 `appVersion` 一致，并有对应的更新说明；已发布且 APK 完整的版本会跳过，不覆盖已有安装包。若只有标签、草稿或不完整的发布记录，流程会报错，需先检查处理。
+
+手动入口仍保留：Actions → 编译 APK → Run workflow，分支选 `main`，版本号填 `0.4.1` 这样的格式；留空只编译。临时故障可重新运行原任务；若修改了代码，需在新代码合并后用手动入口重试同一版本，因为重跑原任务仍会使用原提交。
 
 ## 注意
 
