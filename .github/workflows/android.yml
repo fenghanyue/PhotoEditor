@@ -2,11 +2,11 @@ name: 编译 APK
 
 on:
   push:
-  # 在 Actions 页面手动运行；填了版本号就发正式版（只能在 main 上发）
+  # 保留手动入口；通常改 .github/release-version 并合并到 main 即可发版
   workflow_dispatch:
     inputs:
       release:
-        description: 发正式版：填版本号（如 0.3.0），要和 app/build.gradle.kts 里的 appVersion 一样；留空只编译
+        description: 发正式版：填版本号（如 0.4.1），要和 app/build.gradle.kts 里的 appVersion 一样；留空只编译
         required: false
         default: ''
 
@@ -14,31 +14,28 @@ permissions:
   contents: write
 
 concurrency:
-  # 发正式版单独排队，不会和普通编译互相取消
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ inputs.release }}
-  cancel-in-progress: true
+  # main 按提交分别运行，普通提交不能取消前一次发版；开发分支仍取消旧编译
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.ref == 'refs/heads/main' && github.sha || 'development' }}
+  cancel-in-progress: ${{ github.ref != 'refs/heads/main' }}
 
 jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     env:
-      # 编译脚本按它决定版本号；推送代码时为空
-      RELEASE_VERSION: ${{ inputs.release }}
+      RELEASE_INPUT: ${{ inputs.release }}
     steps:
-      - name: 检查正式版的版本号
-        if: env.RELEASE_VERSION != ''
-        run: |
-          if [ "$GITHUB_REF" != refs/heads/main ]; then
-            echo "正式版只能从 main 发，现在是 $GITHUB_REF_NAME" >&2
-            exit 1
-          fi
-          if ! [[ "$RELEASE_VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
-            echo "版本号要写成 0.3.0 这样，现在是 $RELEASE_VERSION" >&2
-            exit 1
-          fi
-
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+
+      - name: 检查发布流程
+        run: python3 -B -m unittest discover -s tools/release -p 'test_*.py' -v
+
+      - name: 确定本次是否发正式版
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B tools/release/prepare_release.py
 
       - uses: actions/setup-java@v5
         with:
@@ -52,13 +49,14 @@ jobs:
       - name: 整理 APK
         run: |
           mkdir -p dist
-          # 正式版用版本号命名（PhotoEditor-0.3.0.apk），测试版用编译序号
+          # 正式版用版本号命名，测试版用编译序号
           cp app/build/outputs/apk/release/app-release.apk "dist/PhotoEditor-${RELEASE_VERSION:-${{ github.run_number }}}.apk"
 
       - uses: actions/upload-artifact@v6
         with:
           name: PhotoEditor-${{ github.run_number }}
           path: dist/*.apk
+          overwrite: true
 
       # 只由开发分支更新；main 上的提交都在开发分支上测过，不再重复发一个一样的测试版
       - name: 更新 Releases 里的"最新测试版"
@@ -74,7 +72,13 @@ jobs:
             --title "最新测试版（第 ${{ github.run_number }} 次编译）" \
             --notes "分支 ${GITHUB_REF_NAME}，提交 ${GITHUB_SHA::7}。用手机浏览器下载 APK 后直接安装。"
 
-      # 打标签 v0.3.0 并发正式版，更新说明取自 CHANGELOG.md 里对应的一节
+      - name: 上传前再次检查版本
+        if: env.RELEASE_VERSION != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: python3 -B tools/release/prepare_release.py --check-existing
+
+      # 编译、测试和代码检查全部通过后，才打标签并发正式版
       - name: 发布正式版
         if: env.RELEASE_VERSION != ''
         env:
@@ -82,22 +86,7 @@ jobs:
           GH_REPO: ${{ github.repository }}
         run: |
           version="$RELEASE_VERSION"
-          # 从"## 0.3.0"开头的标题取到下一个"## "标题为止（0.3.0 后面紧跟数字或点的不算，比如 0.3.01）
-          awk -v v="$version" '
-            /^## / {
-              if (found) exit
-              rest = substr($0, 4)
-              found = index(rest, v) == 1 && substr(rest, length(v) + 1, 1) !~ /[0-9.]/
-              next
-            }
-            found
-          ' CHANGELOG.md > notes.md
-          if ! grep -q '[^[:space:]]' notes.md; then
-            echo "CHANGELOG.md 里没有 $version 的更新说明" >&2
-            exit 1
-          fi
-          printf '\n用手机浏览器下载下面的 APK，直接安装就能覆盖之前装的版本。\n' >> notes.md
           gh release create "v$version" dist/*.apk \
             --target "$GITHUB_SHA" \
             --title "PhotoEditor $version" \
-            --notes-file notes.md
+            --notes-file dist/release-notes.md
