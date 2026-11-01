@@ -4,6 +4,7 @@ import io.github.fenghanyue.photoeditor.geo.Region
 import io.github.fenghanyue.photoeditor.geo.RegionLevel
 import io.github.fenghanyue.photoeditor.geo.RegionStyle
 import io.github.fenghanyue.photoeditor.meta.GeoPoint
+import io.github.fenghanyue.photoeditor.meta.DeviceCatalog
 import io.github.fenghanyue.photoeditor.meta.MetaSource
 import io.github.fenghanyue.photoeditor.meta.PhotoMeta
 import io.github.fenghanyue.photoeditor.meta.Sourced
@@ -88,5 +89,19 @@ class WatermarkContentTest {
     @Test
     fun noExposureInfoMeansNoParamsLine() {
         assertNull(WatermarkContent.from(PhotoMeta(), null, WatermarkOptions()).params)
+    }
+
+    @Test
+    fun selectedModelSuppliesWatermarkBrandWhileShootingParametersStayWithThePhoto() {
+        val phone = DeviceCatalog.models.last()
+        val content = WatermarkContent.from(meta, phone.displayName, WatermarkOptions(), brandOverride = phone.brand.watermarkName)
+        assertEquals("OnePlus 15T", content.deviceName)
+        assertEquals("OnePlus", content.brand)
+        assertEquals("52mm  f/5.6  1/60s  ISO 1400", content.params)
+        assertEquals("2025.05.20 08:30", content.dateTime)
+
+        val withoutExif = WatermarkContent.from(PhotoMeta(), phone.displayName, WatermarkOptions(), brandOverride = phone.brand.watermarkName)
+        assertEquals("OnePlus", withoutExif.brand)
+        assertEquals("OnePlus 15T", withoutExif.deviceName)
     }
 }

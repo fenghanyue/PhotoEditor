@@ -17,6 +17,7 @@ import io.github.fenghanyue.photoeditor.export.PhotoExporter
 import io.github.fenghanyue.photoeditor.geo.Region
 import io.github.fenghanyue.photoeditor.geo.RegionIndex
 import io.github.fenghanyue.photoeditor.media.MediaRepository
+import io.github.fenghanyue.photoeditor.meta.DeviceModel
 import io.github.fenghanyue.photoeditor.meta.DeviceNames
 import io.github.fenghanyue.photoeditor.meta.ExifReader
 import io.github.fenghanyue.photoeditor.meta.PhotoMeta
@@ -38,8 +39,7 @@ data class EditorState(
     val loading: Boolean = true,
     val meta: PhotoMeta? = null,
     val fileName: String? = null,
-    /** 机型名称输入框里的文字。 */
-    val deviceName: String = "",
+    val deviceName: DeviceNameState = DeviceNameState(),
     val options: WatermarkOptions = WatermarkOptions(),
     /** 印在照片上的地区；null 表示不印地区。 */
     val region: Region? = null,
@@ -87,7 +87,7 @@ sealed interface SaveResult {
 
 /**
  * 加水印页。只保留当前这一张照片；选项在换照片时保持不变，
- * 改过的机型名称按"品牌 + 机型"记住，同一台相机的照片都会用上。
+ * 机型的输入方式、手填名称和选择结果按原照片的"品牌 + 机型"分别记住。
  * 地区按 [regionForNewPhoto] 的规则决定，最近选过的地区只记在内存里。
  */
 class EditorViewModel(application: Application) : AndroidViewModel(application) {
@@ -95,7 +95,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private var previewSource: Bitmap? = null
     private var loadJob: Job? = null
     private var renderJob: Job? = null
-    private val deviceNameOverrides = mutableMapOf<String, String>()
+    private val deviceNameOverrides = mutableMapOf<String, DeviceNameState>()
 
     /** 上一张照片最后用的地区，给没有 GPS 的照片沿用。 */
     private var lastRegion: Region? = null
@@ -135,7 +135,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
                 loading = false,
                 meta = meta,
                 fileName = fileInfo.displayName,
-                deviceName = deviceNameOverrides[deviceKey(meta)] ?: autoDeviceName(meta),
+                deviceName = deviceNameOverrides[deviceKey(meta)] ?: DeviceNameState(manualName = autoDeviceName(meta)),
                 region = region,
                 regionSource = regionSource,
                 gpsRegion = gpsRegion,
@@ -152,13 +152,26 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun updateDeviceName(name: String) {
+        updateDeviceNameState(state.deviceName.edit(name))
+    }
+
+    fun setDeviceNameMode(mode: DeviceNameMode) {
+        updateDeviceNameState(state.deviceName.useMode(mode))
+    }
+
+    fun selectDeviceModel(model: DeviceModel) {
+        updateDeviceNameState(state.deviceName.select(model))
+    }
+
+    private fun updateDeviceNameState(device: DeviceNameState) {
         val meta = state.meta ?: return
-        if (name == autoDeviceName(meta)) {
+        if (device == state.deviceName) return
+        if (device == DeviceNameState(manualName = autoDeviceName(meta))) {
             deviceNameOverrides.remove(deviceKey(meta))
         } else {
-            deviceNameOverrides[deviceKey(meta)] = name
+            deviceNameOverrides[deviceKey(meta)] = device
         }
-        state = state.copy(deviceName = name)
+        state = state.copy(deviceName = device)
         renderPreview()
     }
 
@@ -206,7 +219,13 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         state = state.copy(saveResult = null)
     }
 
-    private fun content(meta: PhotoMeta) = WatermarkContent.from(meta, state.deviceName, state.options, state.region)
+    private fun content(meta: PhotoMeta) = WatermarkContent.from(
+        meta,
+        state.deviceName.displayName,
+        state.options,
+        state.region,
+        brandOverride = state.deviceName.brandOverride,
+    )
 
     /** 改选项后在后台重画预览；连续输入时只画最后一次。 */
     private fun renderPreview(debounce: Boolean = true) {

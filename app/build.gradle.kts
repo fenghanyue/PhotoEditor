@@ -3,11 +3,14 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-// 当前版本号，和里程碑对应（M3 是 0.3.0）。开始做下一个里程碑时改成下一个版本号。
-val appVersion = "0.3.0"
+// 0.4.0 发布机型选择；批量导出和设置持久保存放在后续版本。
+val appVersion = "0.4.0"
 
 // GitHub Actions 的编译序号。用它当版本号，保证新版本能覆盖安装旧版本。
 val ciBuildNumber = providers.environmentVariable("GITHUB_RUN_NUMBER").orNull?.toIntOrNull()
+
+// 本地测试包要覆盖手机里已安装的版本时，显式传入递增的版本号。
+val localVersionCode = providers.gradleProperty("localVersionCode").map { it.toInt() }.orNull
 
 // 发正式版时在 GitHub Actions 里手动运行并填写版本号，由这个环境变量传进来。
 // 必须和 appVersion 一致，免得发错版本。
@@ -24,10 +27,11 @@ android {
         applicationId = "io.github.fenghanyue.photoeditor"
         minSdk = 29
         targetSdk = 37
-        versionCode = ciBuildNumber ?: 1
+        versionCode = ciBuildNumber ?: localVersionCode ?: 1
         versionName = when {
             releaseVersion != null -> appVersion
             ciBuildNumber != null -> "$appVersion-build$ciBuildNumber"
+            localVersionCode != null -> "$appVersion-local$localVersionCode"
             else -> "$appVersion-local"
         }
     }
