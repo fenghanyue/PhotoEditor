@@ -54,6 +54,7 @@ data class WatermarkContent(
                 meta.fNumber?.let(ParamFormatter::aperture),
                 meta.exposureTimeSec?.let(ParamFormatter::shutter),
                 meta.iso?.let(ParamFormatter::iso),
+                meta.exposureBiasEv?.let(ParamFormatter::exposureBias),
             ).joinToString(PARAM_SEPARATOR).ifEmpty { null }
             val dateTime = meta.dateTime?.value
             val gps = meta.gps

@@ -8,6 +8,7 @@ import android.net.Uri
 import android.provider.MediaStore
 import androidx.exifinterface.media.ExifInterface
 import io.github.fenghanyue.photoeditor.BuildConfig
+import io.github.fenghanyue.photoeditor.meta.CaptureParameterEdits
 import io.github.fenghanyue.photoeditor.meta.ExifMetaParser
 import io.github.fenghanyue.photoeditor.meta.ExifReader
 import io.github.fenghanyue.photoeditor.render.WatermarkAssets
@@ -32,10 +33,11 @@ class PhotoExporter(private val context: Context) {
         sourceName: String?,
         content: WatermarkContent,
         options: WatermarkOptions,
+        parameterEdits: CaptureParameterEdits? = null,
     ): Saved = withContext(Dispatchers.IO) {
         val temp = File.createTempFile("export-", ".jpg", context.cacheDir)
         try {
-            val rendered = renderToFile(source, content, options, temp)
+            val rendered = renderToFile(source, content, options, temp, parameterEdits)
             val uri = saveToGallery(temp, outputName(sourceName))
             Saved(uri, displayName(uri) ?: outputName(sourceName), rendered.downscaled)
         } finally {
@@ -44,7 +46,10 @@ class PhotoExporter(private val context: Context) {
     }
 
     /** 解码原图 → 画水印 → 存成 JPEG → 复制拍摄信息。不碰相册。 */
-    fun renderToFile(source: Uri, content: WatermarkContent, options: WatermarkOptions, target: File): Rendered {
+    fun renderToFile(
+        source: Uri, content: WatermarkContent, options: WatermarkOptions, target: File,
+        parameterEdits: CaptureParameterEdits? = null,
+    ): Rendered {
         val assets = WatermarkAssets.get(context)
         val (output, downscaled) = try {
             render(source, content, options, assets, forceHalf = false)
@@ -68,7 +73,11 @@ class PhotoExporter(private val context: Context) {
             height = height,
             copyGps = options.keepGps && hasGps,
             software = "PhotoEditor ${BuildConfig.VERSION_NAME}",
+            parameterEdits = parameterEdits,
         )
+        parameterEdits?.takeIf { it.hasChanges }?.let {
+            CaptureParameterExif.verify(ExifInterface(target.absolutePath), it)
+        }
         return Rendered(width, height, downscaled)
     }
 

@@ -7,6 +7,7 @@ import androidx.exifinterface.media.ExifInterface
 import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider
 import io.github.fenghanyue.photoeditor.meta.DeviceCatalog
+import io.github.fenghanyue.photoeditor.meta.CaptureParameters
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -99,5 +100,27 @@ class EditorDeviceNameTest {
         viewModel.selectDeviceModel(DeviceCatalog.models.last())
         assertEquals("OnePlus 15T", viewModel.state.deviceName.displayName)
         assertEquals("OnePlus", viewModel.state.deviceName.brandOverride)
+    }
+
+    @Test
+    fun captureEditsBelongToThePhotoAndRestoreDoesNotChangeTheOriginalMetadata() {
+        val first = source("capture-first.jpg", "NIKON CORPORATION", "NIKON Z5_2")
+        val second = source("capture-second.jpg", "NIKON CORPORATION", "NIKON Z5_2")
+        open(first)
+        val original = CaptureParameters.from(requireNotNull(viewModel.state.meta))
+        val edited = original.copy(iso = 100, exposureBiasEv = 2.0 / 3)
+        viewModel.updateCaptureParameters(edited)
+        assertEquals(edited, viewModel.state.captureParameters)
+        assertEquals(original, CaptureParameters.from(requireNotNull(viewModel.state.meta)))
+        open(second)
+        assertEquals(original, viewModel.state.captureParameters)
+        assertNull(viewModel.state.parameterEdits)
+        open(first)
+        assertEquals(edited, viewModel.state.captureParameters)
+        viewModel.updateCaptureParameters(original)
+        assertNull(viewModel.state.parameterEdits)
+        open(second)
+        open(first)
+        assertEquals(original, viewModel.state.captureParameters)
     }
 }
