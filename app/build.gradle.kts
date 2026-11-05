@@ -3,8 +3,8 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
-// 0.4.0 发布机型选择；批量导出和设置持久保存放在后续版本。
-val appVersion = "0.4.0"
+// 0.4.1 试用拍摄参数编辑；正式发布由发布版本文件单独决定。
+val appVersion = "0.4.1"
 
 // GitHub Actions 的编译序号。用它当版本号，保证新版本能覆盖安装旧版本。
 val ciBuildNumber = providers.environmentVariable("GITHUB_RUN_NUMBER").orNull?.toIntOrNull()

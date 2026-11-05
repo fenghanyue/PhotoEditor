@@ -27,6 +27,8 @@ object ExifMetaParser {
         ExifInterface.TAG_EXPOSURE_TIME,
         ExifInterface.TAG_F_NUMBER,
         ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY,
+        ExifInterface.TAG_ISO_SPEED,
+        ExifInterface.TAG_SENSITIVITY_TYPE,
         ExifInterface.TAG_EXPOSURE_BIAS_VALUE,
         ExifInterface.TAG_EXPOSURE_PROGRAM,
         ExifInterface.TAG_METERING_MODE,
@@ -80,7 +82,7 @@ object ExifMetaParser {
             focalLength35mm = exif.positiveInt(ExifInterface.TAG_FOCAL_LENGTH_IN_35MM_FILM),
             fNumber = exif.positiveDouble(ExifInterface.TAG_F_NUMBER),
             exposureTimeSec = exif.positiveDouble(ExifInterface.TAG_EXPOSURE_TIME),
-            iso = exif.positiveInt(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY),
+            iso = exif.iso(),
             exposureBiasEv = exif.finiteDouble(ExifInterface.TAG_EXPOSURE_BIAS_VALUE),
             flashFired = if (exif.hasAttribute(ExifInterface.TAG_FLASH)) {
                 exif.getAttributeInt(ExifInterface.TAG_FLASH, 0) and 1 == 1
@@ -115,6 +117,19 @@ object ExifMetaParser {
     private fun ExifInterface.positiveDouble(tag: String): Double? = finiteDouble(tag)?.takeIf { it > 0 }
 
     private fun ExifInterface.positiveInt(tag: String): Int? = getAttributeInt(tag, 0).takeIf { it > 0 }
+
+    private fun ExifInterface.iso(): Int? {
+        val basic = positiveInt(ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY)
+        if (basic != null && basic != 65535) return basic
+        val type = getAttributeInt(ExifInterface.TAG_SENSITIVITY_TYPE, 0)
+        val extended = when (type) {
+            1, 4 -> positiveInt(ExifInterface.TAG_STANDARD_OUTPUT_SENSITIVITY)
+            2 -> positiveInt(ExifInterface.TAG_RECOMMENDED_EXPOSURE_INDEX)
+            3, 5, 6, 7 -> positiveInt(ExifInterface.TAG_ISO_SPEED)
+            else -> null
+        }
+        return extended ?: basic
+    }
 
     private fun ExifInterface.geoPoint(): GeoPoint? {
         val (latitude, longitude) = latLong ?: return null
