@@ -18,6 +18,8 @@ import io.github.fenghanyue.photoeditor.geo.Region
 import io.github.fenghanyue.photoeditor.geo.RegionIndex
 import io.github.fenghanyue.photoeditor.media.MediaRepository
 import io.github.fenghanyue.photoeditor.meta.DeviceModel
+import io.github.fenghanyue.photoeditor.meta.CaptureParameters
+import io.github.fenghanyue.photoeditor.meta.CaptureParameterEdits
 import io.github.fenghanyue.photoeditor.meta.DeviceNames
 import io.github.fenghanyue.photoeditor.meta.ExifReader
 import io.github.fenghanyue.photoeditor.meta.PhotoMeta
@@ -40,6 +42,7 @@ data class EditorState(
     val meta: PhotoMeta? = null,
     val fileName: String? = null,
     val deviceName: DeviceNameState = DeviceNameState(),
+    val parameters: CaptureParameters? = null,
     val options: WatermarkOptions = WatermarkOptions(),
     /** 印在照片上的地区；null 表示不印地区。 */
     val region: Region? = null,
@@ -57,6 +60,10 @@ data class EditorState(
     val saveResult: SaveResult? = null,
 ) {
     val hasGps: Boolean get() = meta?.gps != null
+    val captureParameters: CaptureParameters get() = parameters ?: meta?.let(CaptureParameters::from) ?: CaptureParameters()
+    val parameterEdits: CaptureParameterEdits? get() = meta?.let {
+        CaptureParameterEdits(CaptureParameters.from(it), captureParameters).takeIf { edit -> edit.hasChanges }
+    }
 }
 
 /** 地区是怎么来的。 */
@@ -96,6 +103,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     private var loadJob: Job? = null
     private var renderJob: Job? = null
     private val deviceNameOverrides = mutableMapOf<String, DeviceNameState>()
+    private val parametersByPhoto = mutableMapOf<Uri, CaptureParameters>()
 
     /** 上一张照片最后用的地区，给没有 GPS 的照片沿用。 */
     private var lastRegion: Region? = null
@@ -134,6 +142,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
             state = state.copy(
                 loading = false,
                 meta = meta,
+                parameters = parametersByPhoto[uri],
                 fileName = fileInfo.displayName,
                 deviceName = deviceNameOverrides[deviceKey(meta)] ?: DeviceNameState(manualName = autoDeviceName(meta)),
                 region = region,
@@ -161,6 +170,16 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
 
     fun selectDeviceModel(model: DeviceModel) {
         updateDeviceNameState(state.deviceName.select(model))
+    }
+
+    fun updateCaptureParameters(parameters: CaptureParameters) {
+        val meta = state.meta ?: return
+        val uri = state.uri ?: return
+        if (state.saving || !parameters.isValid()) return
+        val edited = parameters.takeUnless { it == CaptureParameters.from(meta) }
+        if (edited == null) parametersByPhoto.remove(uri) else parametersByPhoto[uri] = edited
+        state = state.copy(parameters = edited)
+        renderPreview(debounce = false)
     }
 
     private fun updateDeviceNameState(device: DeviceNameState) {
@@ -199,10 +218,11 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
         val fileName = state.fileName
         val content = content(meta)
         val options = state.options
+        val parameterEdits = state.parameterEdits
         state = state.copy(saving = true)
         viewModelScope.launch {
             val result = try {
-                val saved = PhotoExporter(getApplication()).export(uri, fileName, content, options)
+                val saved = PhotoExporter(getApplication()).export(uri, fileName, content, options, parameterEdits)
                 SaveResult.Success(saved.uri, saved.displayName, saved.downscaled)
             } catch (e: CancellationException) {
                 throw e
@@ -220,7 +240,7 @@ class EditorViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun content(meta: PhotoMeta) = WatermarkContent.from(
-        meta,
+        state.captureParameters.applyTo(meta),
         state.deviceName.displayName,
         state.options,
         state.region,

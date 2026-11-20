@@ -1,6 +1,7 @@
 package io.github.fenghanyue.photoeditor.export
 
 import androidx.exifinterface.media.ExifInterface
+import io.github.fenghanyue.photoeditor.meta.CaptureParameterEdits
 
 /**
  * 把原图的拍摄信息复制到新图，只复制白名单里的标签：
@@ -33,6 +34,10 @@ object ExifCopier {
         ExifInterface.TAG_PHOTOGRAPHIC_SENSITIVITY,
         ExifInterface.TAG_SENSITIVITY_TYPE,
         ExifInterface.TAG_RECOMMENDED_EXPOSURE_INDEX,
+        ExifInterface.TAG_STANDARD_OUTPUT_SENSITIVITY,
+        ExifInterface.TAG_ISO_SPEED,
+        ExifInterface.TAG_ISO_SPEED_LATITUDE_YYY,
+        ExifInterface.TAG_ISO_SPEED_LATITUDE_ZZZ,
         ExifInterface.TAG_EXPOSURE_BIAS_VALUE,
         ExifInterface.TAG_MAX_APERTURE_VALUE,
         ExifInterface.TAG_METERING_MODE,
@@ -72,7 +77,10 @@ object ExifCopier {
      *   被系统抹掉的位置是一串 0，不能当成真坐标写进新图
      * @param width 新图的宽，height 新图的高（已经转正，所以方向标记写成"正常"）
      */
-    fun copy(source: ExifInterface?, target: ExifInterface, width: Int, height: Int, copyGps: Boolean, software: String) {
+    fun copy(
+        source: ExifInterface?, target: ExifInterface, width: Int, height: Int, copyGps: Boolean,
+        software: String, parameterEdits: CaptureParameterEdits? = null,
+    ) {
         if (source != null) {
             val tags = if (copyGps) TAGS + GPS_TAGS else TAGS
             for (tag in tags) {
@@ -83,6 +91,7 @@ object ExifCopier {
         target.setAttribute(ExifInterface.TAG_PIXEL_X_DIMENSION, width.toString())
         target.setAttribute(ExifInterface.TAG_PIXEL_Y_DIMENSION, height.toString())
         target.setAttribute(ExifInterface.TAG_SOFTWARE, software)
+        parameterEdits?.let { CaptureParameterExif.apply(target, it) }
         target.saveAttributes()
     }
 }

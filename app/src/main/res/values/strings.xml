@@ -125,6 +125,26 @@
     <string name="view">查看</string>
     <string name="save_failed">保存失败：%1$s</string>
 
+    <!-- 编辑拍摄参数 -->
+    <string name="capture_edit">编辑拍摄参数</string>
+    <string name="capture_edit_action">编辑</string>
+    <string name="capture_description">同步修改水印和导出照片的信息，原图保留。</string>
+    <string name="capture_ev">曝光补偿 · ⅓档</string>
+    <string name="capture_focal_actual">实际焦距</string>
+    <string name="capture_focal_equivalent">等效焦距</string>
+    <string name="capture_focal_hint">水印优先显示等效焦距，没有时显示实际焦距。</string>
+    <string name="capture_aperture_hint">光圈按常用档位选择，可用范围随镜头和焦距变化；原图已有的值会保留。</string>
+    <string name="capture_missing">未记录</string>
+    <string name="capture_empty">未记录拍摄参数，可以补填</string>
+    <string name="capture_missing_hint">“%1$s”的项目可以补填。留空则不写入；修改参数记录不改变照片画面。</string>
+    <string name="capture_restore">恢复原值</string>
+    <string name="capture_modified">已修改 · 保存时应用到新图</string>
+    <string name="capture_original">（原值）</string>
+    <string name="capture_positive_integer">请输入大于 0 的整数</string>
+    <string name="capture_positive_number">请输入大于 0 的有效数值</string>
+    <string name="capture_focal_error">请输入 1～65535 的整数</string>
+    <string name="capture_shutter_error">例如 1/250 或 0.5，数值要大于 0</string>
+
     <!-- 选择地区 -->
     <string name="picker_title">选择地区</string>
     <string name="picker_search_hint">搜索，比如：敦煌</string>

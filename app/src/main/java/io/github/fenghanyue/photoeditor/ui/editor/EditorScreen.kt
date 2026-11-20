@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
@@ -36,6 +37,7 @@ import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Switch
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
@@ -53,6 +55,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -62,6 +65,8 @@ import io.github.fenghanyue.photoeditor.export.PhotoExporter
 import io.github.fenghanyue.photoeditor.geo.Region
 import io.github.fenghanyue.photoeditor.geo.RegionStyle
 import io.github.fenghanyue.photoeditor.meta.DeviceModel
+import io.github.fenghanyue.photoeditor.meta.CaptureParameters
+import io.github.fenghanyue.photoeditor.render.WatermarkContent
 import io.github.fenghanyue.photoeditor.render.Corner
 import io.github.fenghanyue.photoeditor.render.FrameColor
 import io.github.fenghanyue.photoeditor.render.FrameLeftDetail
@@ -89,6 +94,7 @@ fun EditorScreen(uri: Uri, onBack: () -> Unit, onOpenInfo: () -> Unit) {
         onSaveResultShown = viewModel::consumeSaveResult,
         onDeviceNameModeChange = viewModel::setDeviceNameMode,
         onDeviceModelSelect = viewModel::selectDeviceModel,
+        onCaptureParametersChange = viewModel::updateCaptureParameters,
     )
 }
 
@@ -106,12 +112,14 @@ fun EditorContent(
     onDeviceNameModeChange: (DeviceNameMode) -> Unit,
     onDeviceModelSelect: (DeviceModel) -> Unit,
     modifier: Modifier = Modifier,
+    onCaptureParametersChange: (CaptureParameters) -> Unit = {},
 ) {
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val keyboard = LocalSoftwareKeyboardController.current
     var pickingRegion by rememberSaveable { mutableStateOf(false) }
     var pickingDevice by rememberSaveable(state.uri) { mutableStateOf(false) }
+    var editingParameters by rememberSaveable(state.uri) { mutableStateOf(false) }
     val pickDevice = {
         focusManager.clearFocus()
         keyboard?.hide()
@@ -193,6 +201,11 @@ fun EditorContent(
                 },
                 onPickDevice = pickDevice,
                 onPickRegion = { pickingRegion = true },
+                onEditParameters = {
+                    focusManager.clearFocus()
+                    keyboard?.hide()
+                    editingParameters = true
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(0.55f)
@@ -233,6 +246,19 @@ fun EditorContent(
             onDismiss = { pickingDevice = false },
         )
     }
+    val meta = state.meta
+    if (editingParameters && meta != null) {
+        CaptureParameterSheet(
+            meta = meta,
+            current = state.captureParameters,
+            onApply = onCaptureParametersChange,
+            onDismiss = {
+                editingParameters = false
+                focusManager.clearFocus()
+                keyboard?.hide()
+            },
+        )
+    }
 }
 
 @Composable
@@ -262,6 +288,7 @@ private fun OptionsPanel(
     onDeviceNameModeChange: (DeviceNameMode) -> Unit,
     onPickDevice: () -> Unit,
     onPickRegion: () -> Unit,
+    onEditParameters: () -> Unit,
     modifier: Modifier,
 ) {
     val options = state.options
@@ -339,6 +366,7 @@ private fun OptionsPanel(
                 }
             }
         }
+        CaptureParameterRow(state, onEditParameters)
         RegionRow(state, onPickRegion)
         if (state.region != null) {
             LabeledChoices(
@@ -383,6 +411,33 @@ private fun OptionsPanel(
             SwitchRow(stringResource(R.string.option_keep_gps), options.keepGps) { checked ->
                 onOptionsChange { it.copy(keepGps = checked) }
             }
+        }
+    }
+}
+
+@Composable
+private fun CaptureParameterRow(state: EditorState, onEdit: () -> Unit) {
+    val summary = state.meta?.let {
+        WatermarkContent.from(state.captureParameters.applyTo(it), null, state.options).params
+    }
+    Surface(color = MaterialTheme.colorScheme.surfaceContainer, shape = RoundedCornerShape(12.dp),
+        modifier = Modifier.testTag("capture-summary")) {
+        Row(
+            Modifier.fillMaxWidth().padding(start = 12.dp, end = 4.dp, top = 8.dp, bottom = 8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(stringResource(R.string.section_exposure), style = MaterialTheme.typography.labelLarge)
+                Text(summary ?: stringResource(R.string.capture_empty), style = MaterialTheme.typography.bodyMedium)
+                if (state.parameterEdits != null) {
+                    Text(stringResource(R.string.capture_modified), style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.primary)
+                }
+            }
+            TextButton(
+                onClick = onEdit, enabled = !state.loading && !state.saving && state.meta != null,
+                modifier = Modifier.testTag("capture-edit"),
+            ) { Text(stringResource(R.string.capture_edit_action)) }
         }
     }
 }

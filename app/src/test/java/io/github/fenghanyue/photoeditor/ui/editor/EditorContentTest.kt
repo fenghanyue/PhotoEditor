@@ -28,6 +28,7 @@ import io.github.fenghanyue.photoeditor.R
 import io.github.fenghanyue.photoeditor.geo.Region
 import io.github.fenghanyue.photoeditor.geo.TestRegions
 import io.github.fenghanyue.photoeditor.meta.DeviceCatalog
+import io.github.fenghanyue.photoeditor.meta.CaptureParameters
 import io.github.fenghanyue.photoeditor.meta.GeoPoint
 import io.github.fenghanyue.photoeditor.meta.PhotoMeta
 import io.github.fenghanyue.photoeditor.render.TemplateKind
@@ -91,6 +92,32 @@ class EditorContentTest {
         composeRule.onNodeWithTag(DEVICE_MODEL_FIELD_TAG).performScrollTo().performClick()
         composeRule.onNodeWithTag("deviceModel-nikon-z5-ii").assertDoesNotExist()
         composeRule.onNodeWithTag("deviceModel-oneplus-15t").performClick()
+    }
+
+    @Test
+    fun captureSheetCancelKeepsOriginalAndConfirmUpdatesTheSummary() {
+        var state by mutableStateOf(EditorState(loading = false, meta = PhotoMeta(iso = 100, fNumber = 8.0)))
+        composeRule.setContent {
+            PhotoEditorTheme {
+                EditorContent(
+                    state = state, onBack = {}, onOpenInfo = {}, onOptionsChange = {},
+                    onDeviceNameChange = {}, onRegionSelect = {}, onSave = {}, onSaveResultShown = {},
+                    onDeviceNameModeChange = {}, onDeviceModelSelect = {},
+                    onCaptureParametersChange = { state = state.copy(parameters = it) },
+                )
+            }
+        }
+        composeRule.onNodeWithTag("capture-edit").performScrollTo().performClick()
+        composeRule.onNodeWithTag("capture-iso").performScrollTo().performTextReplacement("800")
+        composeRule.onNodeWithContentDescription(context.getString(R.string.close)).performClick()
+        assertEquals(100, state.captureParameters.iso)
+        composeRule.onNodeWithTag("capture-edit").performScrollTo().performClick()
+        composeRule.onNodeWithTag("capture-iso").performScrollTo().performTextReplacement("800")
+        snapshot("capture-sheet", "capture-editor")
+        composeRule.onNodeWithTag("capture-confirm").assertIsDisplayed().performClick()
+        assertEquals(CaptureParameters(iso = 800, fNumber = 8.0), state.captureParameters)
+        composeRule.onNodeWithText("f/8  ISO 800").performScrollTo().assertIsDisplayed()
+        snapshot("capture-summary", "capture-summary")
     }
 
     @Test
